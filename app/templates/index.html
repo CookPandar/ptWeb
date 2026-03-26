@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PT Rollout Viewer</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Standalone Inspector</p>
+          <h1>PT Rollout Viewer</h1>
+          <p class="subtitle">
+            读取 PyTorch `.pt` rollout cache，查看样本级字段、张量形状和数值预览。
+          </p>
+        </div>
+        <div class="hero-meta">
+          <div class="meta-card">
+            <span>默认目录</span>
+            <code id="default-dir">{{ default_dir }}</code>
+          </div>
+          <div class="meta-card">
+            <span>默认文件</span>
+            <code id="default-file">{{ default_file }}</code>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <div class="panel">
+          <label for="dir-input">目录</label>
+          <div class="row">
+            <input id="dir-input" value="{{ default_dir }}" />
+            <button id="browse-btn">列出 .pt</button>
+          </div>
+          <div id="file-list" class="file-list"></div>
+        </div>
+
+        <div class="panel">
+          <label for="file-input">文件路径</label>
+          <div class="row">
+            <input id="file-input" value="{{ default_file }}" />
+            <button id="load-btn" class="primary">加载文件</button>
+          </div>
+          <label for="tokenizer-input" class="tokenizer-label">Tokenizer 路径</label>
+          <input id="tokenizer-input" value="{{ default_tokenizer }}" />
+          <p id="status" class="status">等待加载</p>
+        </div>
+      </section>
+
+      <section class="controls">
+        <div class="panel">
+          <label for="reward-csv-input">Reward CSV</label>
+          <input id="reward-csv-input" value="{{ default_reward_csv }}" />
+          <p class="status compact-status">默认按同量纲分成多张图显示</p>
+        </div>
+        <div class="panel">
+          <label for="train-csv-input">Train CSV</label>
+          <input id="train-csv-input" value="{{ default_train_csv }}" />
+          <div class="row">
+            <button id="refresh-monitor-btn">刷新曲线</button>
+            <button id="toggle-monitor-btn" class="primary">暂停自动更新</button>
+          </div>
+          <p id="monitor-status" class="status">监控未启动</p>
+        </div>
+      </section>
+
+      <section class="monitor-stack">
+        <div class="panel">
+          <div class="panel-title">
+            <h2>Reward Monitor</h2>
+            <span id="reward-meta" class="muted"></span>
+          </div>
+          <div id="reward-chart-grid" class="subchart-grid"></div>
+          <pre id="reward-tail" class="json-block chart-tail"></pre>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <h2>Train Monitor</h2>
+            <span id="train-meta" class="muted"></span>
+          </div>
+          <div id="train-chart-grid" class="subchart-grid"></div>
+          <pre id="train-tail" class="json-block chart-tail"></pre>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <div class="panel-title">
+            <h2>文件概览</h2>
+          </div>
+          <pre id="overview" class="json-block"></pre>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <h2>样本详情</h2>
+            <span id="detail-title" class="muted">未选择</span>
+          </div>
+          <pre id="detail" class="json-block"></pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">
+          <h2>样本列表</h2>
+          <span class="muted">点击任意行查看字段与 tensor 摘要</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>index</th>
+                <th>agent</th>
+                <th>timestep</th>
+                <th>reward</th>
+                <th>value</th>
+                <th>log_prob</th>
+                <th>done</th>
+                <th>prompt_len</th>
+                <th>response_len</th>
+                <th>critic_len</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
