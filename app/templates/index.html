@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PT Rollout Viewer</title>
-    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="/static/style.css?v={{ static_version }}" />
   </head>
   <body>
     <main class="shell">
@@ -28,109 +28,331 @@
         </div>
       </section>
 
-      <section class="controls">
-        <div class="panel">
-          <label for="dir-input">目录</label>
-          <div class="row">
-            <input id="dir-input" value="{{ default_dir }}" />
-            <button id="browse-btn">列出 .pt</button>
-          </div>
-          <div id="file-list" class="file-list"></div>
-        </div>
+      <section class="view-scope">
+        <section class="view-switch">
+          <button type="button" class="view-tab active" data-view-target="monitor-view">监控图</button>
+          <button type="button" class="view-tab" data-view-target="policy-view">Policy Logs</button>
+          <button type="button" class="view-tab" data-view-target="pt-view">PT Samples</button>
+        </section>
 
-        <div class="panel">
-          <label for="file-input">文件路径</label>
-          <div class="row">
-            <input id="file-input" value="{{ default_file }}" />
-            <button id="load-btn" class="primary">加载文件</button>
+        <section id="monitor-view" class="view-panel active">
+        <section class="controls">
+          <div class="panel">
+            <label for="reward-csv-input">Reward CSV</label>
+            <input id="reward-csv-input" value="{{ default_reward_csv }}" />
+            <div class="preset-row">
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="train"
+                data-reward-path="{{ default_reward_csv }}"
+                data-train-path="{{ default_train_csv }}"
+              >
+                Train
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="train"
+                data-reward-path="{{ default_reward_kl_csv }}"
+                data-train-path="{{ default_train_kl_csv }}"
+              >
+                Train KL
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="train"
+                data-reward-path="{{ default_reward_kl_lrlow_csv }}"
+                data-train-path="{{ default_train_kl_lrlow_csv }}"
+              >
+                Train KL LR-Low
+              </button>
+            </div>
+            <p class="status compact-status">Reward Monitor 显示累计收益及 reward 组成，包括 process、通信、格式和验证器惩罚</p>
           </div>
-          <label for="tokenizer-input" class="tokenizer-label">Tokenizer 路径</label>
-          <input id="tokenizer-input" value="{{ default_tokenizer }}" />
-          <p id="status" class="status">等待加载</p>
-        </div>
-      </section>
-
-      <section class="controls">
-        <div class="panel">
-          <label for="reward-csv-input">Reward CSV</label>
-          <input id="reward-csv-input" value="{{ default_reward_csv }}" />
-          <p class="status compact-status">默认按同量纲分成多张图显示</p>
-        </div>
-        <div class="panel">
-          <label for="train-csv-input">Train CSV</label>
-          <input id="train-csv-input" value="{{ default_train_csv }}" />
-          <div class="row">
-            <button id="refresh-monitor-btn">刷新曲线</button>
-            <button id="toggle-monitor-btn" class="primary">暂停自动更新</button>
+          <div class="panel">
+            <label for="train-csv-input">Train CSV</label>
+            <input id="train-csv-input" value="{{ default_train_csv }}" />
+            <div class="row">
+              <button id="refresh-monitor-btn">刷新曲线</button>
+              <button id="toggle-monitor-btn" class="primary">暂停自动更新</button>
+            </div>
+            <p id="monitor-status" class="status">监控未启动</p>
           </div>
-          <p id="monitor-status" class="status">监控未启动</p>
-        </div>
-      </section>
+        </section>
 
-      <section class="monitor-stack">
-        <div class="panel">
+        <section class="controls">
+          <div class="panel">
+            <label for="eval-dir-input">Eval Directory</label>
+            <input id="eval-dir-input" value="{{ default_eval_dir }}" />
+            <div class="preset-row">
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="eval"
+                data-eval-dir="{{ default_eval_dir }}"
+              >
+                Eval
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="eval"
+                data-eval-dir="{{ default_eval_kl_dir }}"
+              >
+                Eval KL
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="eval"
+                data-eval-dir="{{ default_collect_kl_lrlow_dir }}"
+              >
+                Collect KL LR-Low
+              </button>
+              <button
+                type="button"
+                class="preset-btn"
+                data-preset-kind="eval"
+                data-eval-dir="{{ default_eval_kl_lrlow_dir }}"
+              >
+                Eval KL LR-Low
+              </button>
+            </div>
+            <p class="status compact-status">自动读取 performance / episode_return / reward 三类评估 CSV</p>
+          </div>
+        </section>
+
+          <section class="view-scope">
+            <section class="view-switch subview-switch">
+              <button type="button" class="view-tab active" data-view-target="reward-panel">Reward</button>
+              <button type="button" class="view-tab" data-view-target="train-panel">Train</button>
+              <button type="button" class="view-tab" data-view-target="eval-panel">Eval</button>
+            </section>
+
+            <section id="reward-panel" class="view-panel active">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>Reward Monitor</h2>
+                  <span id="reward-meta" class="muted"></span>
+                </div>
+                <div id="reward-chart-grid" class="subchart-grid"></div>
+                <pre id="reward-tail" class="json-block chart-tail"></pre>
+              </div>
+            </section>
+
+            <section id="train-panel" class="view-panel">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>Train Monitor</h2>
+                  <span id="train-meta" class="muted"></span>
+                </div>
+                <div id="train-chart-grid" class="subchart-grid"></div>
+                <pre id="train-tail" class="json-block chart-tail"></pre>
+              </div>
+            </section>
+
+            <section id="eval-panel" class="view-panel">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>Eval Monitor</h2>
+                  <span id="eval-meta" class="muted"></span>
+                </div>
+                <div id="eval-chart-grid" class="subchart-grid"></div>
+                <pre id="eval-tail" class="json-block chart-tail"></pre>
+              </div>
+            </section>
+          </section>
+        </section>
+
+        <section id="policy-view" class="view-panel">
+        <section class="controls">
+          <div class="panel">
+            <label for="policy-root-input">Policy Record Root</label>
+            <div class="row">
+              <input id="policy-root-input" value="{{ default_policy_records_dir }}" />
+              <button id="browse-policy-files-btn">列出全部日志</button>
+            </div>
+            <p id="policy-record-status" class="status">等待加载 policy records</p>
+          </div>
+        </section>
+
+        <section class="panel">
           <div class="panel-title">
-            <h2>Reward Monitor</h2>
-            <span id="reward-meta" class="muted"></span>
+            <h2>Policy Record Files</h2>
+            <span id="policy-file-list-title" class="muted">直接点击文件打开</span>
           </div>
-          <div id="reward-chart-grid" class="subchart-grid"></div>
-          <pre id="reward-tail" class="json-block chart-tail"></pre>
-        </div>
+          <div id="policy-file-list" class="file-list policy-file-list"></div>
+        </section>
 
-        <div class="panel">
+        <section class="grid">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>Policy Record Overview</h2>
+              <span id="policy-overview-title" class="muted">未选择</span>
+            </div>
+            <pre id="policy-record-overview" class="json-block"></pre>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>Policy Record Detail</h2>
+              <div class="detail-toolbar">
+                <div class="row-index-controls">
+                  <button id="policy-prev-row-btn" type="button">上一条</button>
+                  <input id="policy-row-index-input" type="number" min="0" step="1" placeholder="index" />
+                  <button id="policy-jump-row-btn" type="button">跳转</button>
+                  <button id="policy-next-row-btn" type="button">下一条</button>
+                </div>
+                <span id="policy-record-detail-title" class="muted">未选择</span>
+              </div>
+            </div>
+            <div class="paired-detail-grid">
+              <div class="detail-card">
+                <h3>Agent 0</h3>
+                <div class="detail-stack">
+                  <div class="detail-card">
+                    <h3>Observation / Prompt</h3>
+                    <pre id="policy-agent0-observation" class="json-block detail-block"></pre>
+                  </div>
+                  <div class="detail-card">
+                    <h3>Response</h3>
+                    <pre id="policy-agent0-response" class="json-block detail-block"></pre>
+                  </div>
+                  <div class="detail-card">
+                    <h3>Messages</h3>
+                    <pre id="policy-agent0-messages" class="json-block detail-block"></pre>
+                  </div>
+                  <div class="detail-card">
+                    <h3>Metadata / Reward Breakdown</h3>
+                    <pre id="policy-agent0-metadata" class="json-block detail-block"></pre>
+                  </div>
+                </div>
+              </div>
+              <div class="detail-card">
+                <h3>Agent 1</h3>
+                <div class="detail-stack">
+                  <div class="detail-card">
+                    <h3>Observation / Prompt</h3>
+                    <pre id="policy-agent1-observation" class="json-block detail-block"></pre>
+                  </div>
+                  <div class="detail-card">
+                    <h3>Response</h3>
+                    <pre id="policy-agent1-response" class="json-block detail-block"></pre>
+                  </div>
+                  <div class="detail-card">
+                    <h3>Messages</h3>
+                    <pre id="policy-agent1-messages" class="json-block detail-block"></pre>
+                  </div>
+                  <div class="detail-card">
+                    <h3>Metadata / Reward Breakdown</h3>
+                    <pre id="policy-agent1-metadata" class="json-block detail-block"></pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
           <div class="panel-title">
-            <h2>Train Monitor</h2>
-            <span id="train-meta" class="muted"></span>
+            <h2>Policy Record Rows</h2>
+            <span class="muted">点击任意行查看 observation、response、messages 和 metadata</span>
           </div>
-          <div id="train-chart-grid" class="subchart-grid"></div>
-          <pre id="train-tail" class="json-block chart-tail"></pre>
-        </div>
-      </section>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>event</th>
+                  <th>timestep</th>
+                  <th>slot</th>
+                  <th>kind</th>
+                  <th>a0 row</th>
+                  <th>a0 type</th>
+                  <th>a0 reward</th>
+                  <th>a0 observation</th>
+                  <th>a1 row</th>
+                  <th>a1 type</th>
+                  <th>a1 reward</th>
+                  <th>a1 observation</th>
+                </tr>
+              </thead>
+              <tbody id="policy-record-rows"></tbody>
+            </table>
+          </div>
+        </section>
+        </section>
 
-      <section class="grid">
-        <div class="panel">
+        <section id="pt-view" class="view-panel">
+        <section class="controls">
+          <div class="panel">
+            <label for="dir-input">目录</label>
+            <div class="row">
+              <input id="dir-input" value="{{ default_dir }}" />
+              <button id="browse-btn">列出 .pt</button>
+            </div>
+            <div id="file-list" class="file-list"></div>
+          </div>
+
+          <div class="panel">
+            <label for="file-input">文件路径</label>
+            <div class="row">
+              <input id="file-input" value="{{ default_file }}" />
+              <button id="load-btn" class="primary">加载文件</button>
+            </div>
+            <label for="tokenizer-input" class="tokenizer-label">Tokenizer 路径</label>
+            <input id="tokenizer-input" value="{{ default_tokenizer }}" />
+            <p id="status" class="status">等待加载</p>
+          </div>
+        </section>
+
+        <section class="grid">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>文件概览</h2>
+            </div>
+            <pre id="overview" class="json-block"></pre>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>样本详情</h2>
+              <span id="detail-title" class="muted">未选择</span>
+            </div>
+            <pre id="detail" class="json-block"></pre>
+          </div>
+        </section>
+
+        <section class="panel">
           <div class="panel-title">
-            <h2>文件概览</h2>
+            <h2>样本列表</h2>
+            <span class="muted">点击任意行查看字段与 tensor 摘要</span>
           </div>
-          <pre id="overview" class="json-block"></pre>
-        </div>
-
-        <div class="panel">
-          <div class="panel-title">
-            <h2>样本详情</h2>
-            <span id="detail-title" class="muted">未选择</span>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>index</th>
+                  <th>agent</th>
+                  <th>timestep</th>
+                  <th>reward</th>
+                  <th>value</th>
+                  <th>log_prob</th>
+                  <th>done</th>
+                  <th>prompt_len</th>
+                  <th>response_len</th>
+                  <th>critic_len</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
           </div>
-          <pre id="detail" class="json-block"></pre>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-title">
-          <h2>样本列表</h2>
-          <span class="muted">点击任意行查看字段与 tensor 摘要</span>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>index</th>
-                <th>agent</th>
-                <th>timestep</th>
-                <th>reward</th>
-                <th>value</th>
-                <th>log_prob</th>
-                <th>done</th>
-                <th>prompt_len</th>
-                <th>response_len</th>
-                <th>critic_len</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
-        </div>
+        </section>
+        </section>
       </section>
     </main>
 
-    <script src="/static/app.js"></script>
+    <script src="/static/app.js?v={{ static_version }}"></script>
   </body>
 </html>

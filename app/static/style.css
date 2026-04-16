@@ -37,6 +37,36 @@ body {
   animation: rise 280ms ease-out both;
 }
 
+.view-scope {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.view-switch {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.view-tab {
+  background: rgba(255, 249, 240, 0.8);
+  border: 1px solid rgba(83, 57, 33, 0.12);
+}
+
+.view-tab.active {
+  background: linear-gradient(135deg, var(--accent), #c96d3d);
+  color: #fff9f4;
+}
+
+.view-panel {
+  display: none;
+}
+
+.view-panel.active {
+  display: block;
+}
+
 .hero {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -145,6 +175,13 @@ input {
   margin-top: 10px;
 }
 
+.preset-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
 button {
   border: 0;
   border-radius: 14px;
@@ -165,6 +202,12 @@ button.primary {
   color: #fff9f4;
 }
 
+.preset-btn {
+  padding: 8px 12px;
+  background: rgba(38, 70, 83, 0.1);
+  border: 1px solid rgba(38, 70, 83, 0.16);
+}
+
 .file-list {
   margin-top: 14px;
   display: grid;
@@ -174,11 +217,28 @@ button.primary {
 }
 
 .file-item {
+  display: grid;
+  gap: 4px;
+  text-align: left;
   padding: 10px 12px;
   border-radius: 14px;
   background: rgba(243, 234, 223, 0.8);
   border: 1px solid rgba(66, 48, 33, 0.08);
   cursor: pointer;
+}
+
+.file-item-path {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.file-item-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.policy-file-list {
+  max-height: 420px;
 }
 
 .file-item:hover,
@@ -224,6 +284,23 @@ tr:hover {
 .subchart-title {
   margin: 0 0 10px;
   font-size: 16px;
+}
+
+.chart-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.chart-subpanel {
+  display: grid;
+  gap: 8px;
+}
+
+.chart-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .chart {
@@ -311,6 +388,53 @@ tr:hover {
   border-radius: 18px;
 }
 
+.detail-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.paired-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.row-index-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.row-index-controls input {
+  width: 110px;
+  padding: 10px 12px;
+}
+
+.detail-card {
+  display: grid;
+  gap: 8px;
+}
+
+.detail-card h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.detail-block {
+  min-height: 140px;
+  max-height: 320px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -357,5 +481,14 @@ tbody tr.active {
 
   .row {
     flex-direction: column;
+  }
+
+  .detail-toolbar {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .paired-detail-grid {
+    grid-template-columns: 1fr;
   }
 }
