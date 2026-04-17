@@ -27,11 +27,16 @@ const policyRowIndexInput = document.getElementById("policy-row-index-input");
 const policyPrevRowBtn = document.getElementById("policy-prev-row-btn");
 const policyNextRowBtn = document.getElementById("policy-next-row-btn");
 const policyJumpRowBtn = document.getElementById("policy-jump-row-btn");
+const compareALabelInput = document.getElementById("compare-a-label-input");
+const compareBLabelInput = document.getElementById("compare-b-label-input");
 const rewardCsvInput = document.getElementById("reward-csv-input");
 const trainCsvInput = document.getElementById("train-csv-input");
+const rewardCsvInputB = document.getElementById("reward-csv-input-b");
+const trainCsvInputB = document.getElementById("train-csv-input-b");
 const rewardChartGridEl = document.getElementById("reward-chart-grid");
 const trainChartGridEl = document.getElementById("train-chart-grid");
 const evalDirInput = document.getElementById("eval-dir-input");
+const evalDirInputB = document.getElementById("eval-dir-input-b");
 const evalChartGridEl = document.getElementById("eval-chart-grid");
 const rewardTailEl = document.getElementById("reward-tail");
 const trainTailEl = document.getElementById("train-tail");
@@ -43,7 +48,7 @@ const monitorStatusEl = document.getElementById("monitor-status");
 const toggleMonitorBtn = document.getElementById("toggle-monitor-btn");
 const presetButtons = Array.from(document.querySelectorAll(".preset-btn"));
 const viewTabs = Array.from(document.querySelectorAll(".view-tab"));
-const DEFAULT_POLICY_ROOT = "/home/zhangshuwen/Collab-Overcooked/runs/rl_policy_records";
+const DEFAULT_POLICY_ROOT = (policyRootInput?.value || "").trim();
 
 let currentPath = fileInput.value;
 let currentPolicyRecordPath = null;
@@ -53,7 +58,10 @@ let activePtRow = null;
 let activePolicyRow = null;
 let autoRefreshEnabled = true;
 let monitorTimer = null;
-let lastMonitorStamp = { reward: null, train: null, eval: null };
+let lastMonitorStamp = {
+  a: { reward: null, train: null, eval: null },
+  b: { reward: null, train: null, eval: null },
+};
 const CHART_COLORS = ["#a44b20", "#264653", "#2a9d8f", "#c96d3d", "#6d597a", "#d62828"];
 
 function axisLabel(key) {
@@ -505,7 +513,131 @@ function applyPreset(button) {
     trainCsvInput.value = button.dataset.trainPath || trainCsvInput.value;
   } else if (kind === "eval") {
     evalDirInput.value = button.dataset.evalDir || evalDirInput.value;
+  } else if (kind === "compare") {
+    compareALabelInput.value = button.dataset.aLabel || compareALabelInput.value;
+    rewardCsvInput.value = button.dataset.aRewardPath || rewardCsvInput.value;
+    trainCsvInput.value = button.dataset.aTrainPath || trainCsvInput.value;
+    evalDirInput.value = button.dataset.aEvalDir || evalDirInput.value;
+    compareBLabelInput.value = button.dataset.bLabel || compareBLabelInput.value;
+    rewardCsvInputB.value = button.dataset.bRewardPath || rewardCsvInputB.value;
+    trainCsvInputB.value = button.dataset.bTrainPath || trainCsvInputB.value;
+    evalDirInputB.value = button.dataset.bEvalDir || evalDirInputB.value;
   }
+}
+
+function getCompareConfig() {
+  return {
+    a: {
+      label: (compareALabelInput?.value || "").trim() || "Experiment A",
+      rewardPath: rewardCsvInput.value,
+      trainPath: trainCsvInput.value,
+      evalDir: evalDirInput.value,
+    },
+    b: {
+      label: (compareBLabelInput?.value || "").trim() || "Experiment B",
+      rewardPath: rewardCsvInputB.value,
+      trainPath: trainCsvInputB.value,
+      evalDir: evalDirInputB.value,
+    },
+  };
+}
+
+function prefixedSeries(chart, label) {
+  if (!chart?.series?.length) {
+    return [];
+  }
+  return chart.series.map((series) => ({
+    ...series,
+    name: `${label} · ${series.name}`,
+  }));
+}
+
+function mergeChartPayload(chartA, chartB, labelA, labelB) {
+  const xKey = chartA?.x_key || chartB?.x_key || "_round";
+  return {
+    x_key: xKey,
+    series: [...prefixedSeries(chartA, labelA), ...prefixedSeries(chartB, labelB)],
+  };
+}
+
+function mergeNamedCharts(chartsA = [], chartsB = [], labelA, labelB) {
+  const orderedTitles = [];
+  const pushTitle = (title) => {
+    if (title && !orderedTitles.includes(title)) {
+      orderedTitles.push(title);
+    }
+  };
+  chartsA.forEach((chart) => pushTitle(chart.title));
+  chartsB.forEach((chart) => pushTitle(chart.title));
+  const chartMapA = new Map(chartsA.map((chart) => [chart.title, chart]));
+  const chartMapB = new Map(chartsB.map((chart) => [chart.title, chart]));
+  return orderedTitles.map((title) => {
+    const chartA = chartMapA.get(title);
+    const chartB = chartMapB.get(title);
+    return {
+      title,
+      chart: mergeChartPayload(chartA?.chart, chartB?.chart, labelA, labelB),
+    };
+  });
+}
+
+function mergeGroupSets(groupsA = [], groupsB = [], labelA, labelB) {
+  const orderedTitles = [];
+  const pushTitle = (title) => {
+    if (title && !orderedTitles.includes(title)) {
+      orderedTitles.push(title);
+    }
+  };
+  groupsA.forEach((group) => pushTitle(group.title));
+  groupsB.forEach((group) => pushTitle(group.title));
+  const groupMapA = new Map(groupsA.map((group) => [group.title, group]));
+  const groupMapB = new Map(groupsB.map((group) => [group.title, group]));
+  return orderedTitles.map((title) => {
+    const groupA = groupMapA.get(title);
+    const groupB = groupMapB.get(title);
+    if (groupA?.charts || groupB?.charts) {
+      return {
+        title,
+        charts: mergeNamedCharts(groupA?.charts || [], groupB?.charts || [], labelA, labelB),
+      };
+    }
+    return {
+      title,
+      chart: mergeChartPayload(groupA?.chart, groupB?.chart, labelA, labelB),
+    };
+  });
+}
+
+function buildCompareTail(labelA, dataA, labelB, dataB, section) {
+  const result = {};
+  if (dataA) {
+    result[labelA] = dataA[section]?.rows?.slice(-5) ?? [];
+  }
+  if (dataB) {
+    result[labelB] = dataB[section]?.rows?.slice(-5) ?? [];
+  }
+  return prettyJson(result);
+}
+
+function buildCompareEvalTail(labelA, dataA, labelB, dataB) {
+  const result = {};
+  if (dataA) {
+    result[labelA] = {
+      eval_dir: dataA.eval_dir,
+      performance_tail: dataA.performance?.rows?.slice(-5) ?? [],
+      episode_tail: dataA.episode?.rows?.slice(-5) ?? [],
+      reward_tail: dataA.reward?.rows?.slice(-5) ?? [],
+    };
+  }
+  if (dataB) {
+    result[labelB] = {
+      eval_dir: dataB.eval_dir,
+      performance_tail: dataB.performance?.rows?.slice(-5) ?? [],
+      episode_tail: dataB.episode?.rows?.slice(-5) ?? [],
+      reward_tail: dataB.reward?.rows?.slice(-5) ?? [],
+    };
+  }
+  return prettyJson(result);
 }
 
 function renderPanelError(container, metaEl, tailEl, title, message) {
@@ -528,11 +660,16 @@ function isUnavailableEvalMessage(message) {
 
 async function refreshMonitor(force = false) {
   try {
-    const [monitorResult, evalResult] = await Promise.allSettled([
+    const compare = getCompareConfig();
+    const [monitorAResult, evalAResult, monitorBResult, evalBResult] = await Promise.allSettled([
       fetchJson(
-        `/api/monitor?reward_path=${encodeURIComponent(rewardCsvInput.value)}&train_path=${encodeURIComponent(trainCsvInput.value)}`
+        `/api/monitor?reward_path=${encodeURIComponent(compare.a.rewardPath)}&train_path=${encodeURIComponent(compare.a.trainPath)}`
       ),
-      fetchJson(`/api/eval_monitor?eval_dir=${encodeURIComponent(evalDirInput.value)}`),
+      fetchJson(`/api/eval_monitor?eval_dir=${encodeURIComponent(compare.a.evalDir)}`),
+      fetchJson(
+        `/api/monitor?reward_path=${encodeURIComponent(compare.b.rewardPath)}&train_path=${encodeURIComponent(compare.b.trainPath)}`
+      ),
+      fetchJson(`/api/eval_monitor?eval_dir=${encodeURIComponent(compare.b.evalDir)}`),
     ]);
 
     let hasChange = !!force;
@@ -540,51 +677,143 @@ async function refreshMonitor(force = false) {
     const statusParts = [];
     const errors = [];
 
-    if (monitorResult.status === "fulfilled") {
-      const data = monitorResult.value;
-      const monitorChanged =
-        force ||
-        data.reward.mtime !== lastMonitorStamp.reward ||
-        data.train.mtime !== lastMonitorStamp.train;
-      if (monitorChanged) {
-        renderChartGroups(rewardChartGridEl, data.reward.groups, rewardMetaEl);
-        renderChartGroups(trainChartGridEl, data.train.groups, trainMetaEl);
-        rewardTailEl.textContent = prettyJson(data.reward.rows.slice(-10));
-        trainTailEl.textContent = prettyJson(data.train.rows.slice(-10));
-        lastMonitorStamp.reward = data.reward.mtime;
-        lastMonitorStamp.train = data.train.mtime;
-        latestMtime = Math.max(latestMtime, data.reward.mtime, data.train.mtime);
-        hasChange = true;
+    const monitorDataA = monitorAResult.status === "fulfilled" ? monitorAResult.value : null;
+    const monitorDataB = monitorBResult.status === "fulfilled" ? monitorBResult.value : null;
+    const evalDataA = evalAResult.status === "fulfilled" ? evalAResult.value : null;
+    const evalDataB = evalBResult.status === "fulfilled" ? evalBResult.value : null;
+
+    const monitorChanged =
+      force ||
+      (monitorDataA &&
+        (monitorDataA.reward.mtime !== lastMonitorStamp.a.reward ||
+          monitorDataA.train.mtime !== lastMonitorStamp.a.train)) ||
+      (monitorDataB &&
+        (monitorDataB.reward.mtime !== lastMonitorStamp.b.reward ||
+          monitorDataB.train.mtime !== lastMonitorStamp.b.train));
+
+    if (monitorChanged && (monitorDataA || monitorDataB)) {
+      const rewardGroups = mergeGroupSets(
+        monitorDataA?.reward?.groups || [],
+        monitorDataB?.reward?.groups || [],
+        compare.a.label,
+        compare.b.label
+      );
+      const trainGroups = mergeGroupSets(
+        monitorDataA?.train?.groups || [],
+        monitorDataB?.train?.groups || [],
+        compare.a.label,
+        compare.b.label
+      );
+      renderChartGroups(rewardChartGridEl, rewardGroups, rewardMetaEl);
+      renderChartGroups(trainChartGridEl, trainGroups, trainMetaEl);
+      rewardTailEl.textContent = buildCompareTail(
+        compare.a.label,
+        monitorDataA,
+        compare.b.label,
+        monitorDataB,
+        "reward"
+      );
+      trainTailEl.textContent = buildCompareTail(
+        compare.a.label,
+        monitorDataA,
+        compare.b.label,
+        monitorDataB,
+        "train"
+      );
+      if (monitorDataA) {
+        lastMonitorStamp.a.reward = monitorDataA.reward.mtime;
+        lastMonitorStamp.a.train = monitorDataA.train.mtime;
+        latestMtime = Math.max(latestMtime, monitorDataA.reward.mtime, monitorDataA.train.mtime);
       }
-      statusParts.push(`reward(${data.reward.row_count})`);
-      statusParts.push(`train(${data.train.row_count})`);
-    } else {
-      const message = monitorResult.reason?.message || "monitor request failed";
-      renderPanelError(rewardChartGridEl, rewardMetaEl, rewardTailEl, "Reward Monitor", message);
-      renderPanelError(trainChartGridEl, trainMetaEl, trainTailEl, "Train Monitor", message);
-      errors.push(`monitor: ${message}`);
+      if (monitorDataB) {
+        lastMonitorStamp.b.reward = monitorDataB.reward.mtime;
+        lastMonitorStamp.b.train = monitorDataB.train.mtime;
+        latestMtime = Math.max(latestMtime, monitorDataB.reward.mtime, monitorDataB.train.mtime);
+      }
+      hasChange = true;
     }
 
-    if (evalResult.status === "fulfilled") {
-      const evalData = evalResult.value;
-      const evalChanged = force || evalData.mtime !== lastMonitorStamp.eval;
-      if (evalChanged) {
-        renderChartGroups(evalChartGridEl, mergeEvalGroups(evalData), evalMetaEl);
-        evalTailEl.textContent = buildEvalTail(evalData);
-        lastMonitorStamp.eval = evalData.mtime;
-        latestMtime = Math.max(latestMtime, evalData.mtime);
-        hasChange = true;
-      }
-      statusParts.push(`eval(${evalData.eval_dir})`);
+    if (monitorDataA) {
+      statusParts.push(`${compare.a.label}: reward(${monitorDataA.reward.row_count}) train(${monitorDataA.train.row_count})`);
     } else {
-      const message = evalResult.reason?.message || "eval monitor request failed";
-      if (isUnavailableEvalMessage(message)) {
-        renderPanelError(evalChartGridEl, evalMetaEl, evalTailEl, "Eval Monitor", "当前目录没有评估 CSV，可切换到其它 eval / collect 结果目录。");
-        statusParts.push("eval(unavailable)");
-      } else {
-        renderPanelError(evalChartGridEl, evalMetaEl, evalTailEl, "Eval Monitor", message);
-        errors.push(`eval: ${message}`);
+      const message = monitorAResult.reason?.message || "monitor request failed";
+      errors.push(`${compare.a.label} monitor: ${message}`);
+    }
+
+    if (monitorDataB) {
+      statusParts.push(`${compare.b.label}: reward(${monitorDataB.reward.row_count}) train(${monitorDataB.train.row_count})`);
+    } else {
+      const message = monitorBResult.reason?.message || "monitor request failed";
+      errors.push(`${compare.b.label} monitor: ${message}`);
+    }
+
+    const evalChanged =
+      force ||
+      (evalDataA && evalDataA.mtime !== lastMonitorStamp.a.eval) ||
+      (evalDataB && evalDataB.mtime !== lastMonitorStamp.b.eval);
+
+    if (evalChanged && (evalDataA || evalDataB)) {
+      const evalGroups = mergeGroupSets(
+        mergeEvalGroups(evalDataA || {}),
+        mergeEvalGroups(evalDataB || {}),
+        compare.a.label,
+        compare.b.label
+      );
+      renderChartGroups(evalChartGridEl, evalGroups, evalMetaEl);
+      evalTailEl.textContent = buildCompareEvalTail(compare.a.label, evalDataA, compare.b.label, evalDataB);
+      if (evalDataA) {
+        lastMonitorStamp.a.eval = evalDataA.mtime;
+        latestMtime = Math.max(latestMtime, evalDataA.mtime);
       }
+      if (evalDataB) {
+        lastMonitorStamp.b.eval = evalDataB.mtime;
+        latestMtime = Math.max(latestMtime, evalDataB.mtime);
+      }
+      hasChange = true;
+    }
+
+    if (evalDataA) {
+      statusParts.push(`${compare.a.label}: eval`);
+    } else {
+      const message = evalAResult.reason?.message || "eval monitor request failed";
+      if (!isUnavailableEvalMessage(message)) {
+        errors.push(`${compare.a.label} eval: ${message}`);
+      }
+    }
+
+    if (evalDataB) {
+      statusParts.push(`${compare.b.label}: eval`);
+    } else {
+      const message = evalBResult.reason?.message || "eval monitor request failed";
+      if (!isUnavailableEvalMessage(message)) {
+        errors.push(`${compare.b.label} eval: ${message}`);
+      }
+    }
+
+    if (!evalDataA && !evalDataB) {
+      renderPanelError(
+        evalChartGridEl,
+        evalMetaEl,
+        evalTailEl,
+        "Eval Monitor",
+        "两组实验当前都没有可用的评估 CSV，可切换目录后再看。"
+      );
+    }
+    if (!monitorDataA && !monitorDataB) {
+      renderPanelError(
+        rewardChartGridEl,
+        rewardMetaEl,
+        rewardTailEl,
+        "Reward Monitor",
+        "两组实验当前都没有可用的 reward CSV。"
+      );
+      renderPanelError(
+        trainChartGridEl,
+        trainMetaEl,
+        trainTailEl,
+        "Train Monitor",
+        "两组实验当前都没有可用的 train CSV。"
+      );
     }
 
     if (!hasChange && !errors.length) {
@@ -758,7 +987,10 @@ async function loadItem(index, rowEl = null) {
 presetButtons.forEach((button) => {
   button.addEventListener("click", async () => {
     applyPreset(button);
-    lastMonitorStamp = { reward: null, train: null, eval: null };
+    lastMonitorStamp = {
+      a: { reward: null, train: null, eval: null },
+      b: { reward: null, train: null, eval: null },
+    };
     await refreshMonitor(true);
   });
 });
