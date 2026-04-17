@@ -116,6 +116,10 @@ h1 {
   margin-bottom: 16px;
 }
 
+.controls.single-column {
+  grid-template-columns: 1fr;
+}
+
 .grid {
   grid-template-columns: 1fr 1fr;
   margin-bottom: 16px;
@@ -167,6 +171,11 @@ input {
   padding: 12px 14px;
   font-size: 14px;
   color: var(--text);
+}
+
+.panel label:not(:first-of-type) {
+  display: block;
+  margin-top: 12px;
 }
 
 .row {

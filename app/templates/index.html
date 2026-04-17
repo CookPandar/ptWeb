@@ -38,89 +38,63 @@
         <section id="monitor-view" class="view-panel active">
         <section class="controls">
           <div class="panel">
+            <div class="panel-title">
+              <h2>实验 A</h2>
+              <span class="muted">默认对照组</span>
+            </div>
+            <label for="compare-a-label-input">Label</label>
+            <input id="compare-a-label-input" value="{{ default_compare_a_label }}" />
             <label for="reward-csv-input">Reward CSV</label>
-            <input id="reward-csv-input" value="{{ default_reward_csv }}" />
+            <input id="reward-csv-input" value="{{ default_compare_a_reward_csv }}" />
+            <label for="train-csv-input">Train CSV</label>
+            <input id="train-csv-input" value="{{ default_compare_a_train_csv }}" />
+            <label for="eval-dir-input">Eval Directory</label>
+            <input id="eval-dir-input" value="{{ default_compare_a_eval_dir }}" />
+          </div>
+          <div class="panel">
+            <div class="panel-title">
+              <h2>实验 B</h2>
+              <span class="muted">默认协作奖励组</span>
+            </div>
+            <label for="compare-b-label-input">Label</label>
+            <input id="compare-b-label-input" value="{{ default_compare_b_label }}" />
+            <label for="reward-csv-input-b">Reward CSV</label>
+            <input id="reward-csv-input-b" value="{{ default_compare_b_reward_csv }}" />
+            <label for="train-csv-input-b">Train CSV</label>
+            <input id="train-csv-input-b" value="{{ default_compare_b_train_csv }}" />
+            <label for="eval-dir-input-b">Eval Directory</label>
+            <input id="eval-dir-input-b" value="{{ default_compare_b_eval_dir }}" />
             <div class="preset-row">
               <button
                 type="button"
                 class="preset-btn"
-                data-preset-kind="train"
-                data-reward-path="{{ default_reward_csv }}"
-                data-train-path="{{ default_train_csv }}"
+                data-preset-kind="compare"
+                data-a-label="{{ default_compare_a_label }}"
+                data-a-reward-path="{{ default_compare_a_reward_csv }}"
+                data-a-train-path="{{ default_compare_a_train_csv }}"
+                data-a-eval-dir="{{ default_compare_a_eval_dir }}"
+                data-b-label="{{ default_compare_b_label }}"
+                data-b-reward-path="{{ default_compare_b_reward_csv }}"
+                data-b-train-path="{{ default_compare_b_train_csv }}"
+                data-b-eval-dir="{{ default_compare_b_eval_dir }}"
               >
-                Train
-              </button>
-              <button
-                type="button"
-                class="preset-btn"
-                data-preset-kind="train"
-                data-reward-path="{{ default_reward_kl_csv }}"
-                data-train-path="{{ default_train_kl_csv }}"
-              >
-                Train KL
-              </button>
-              <button
-                type="button"
-                class="preset-btn"
-                data-preset-kind="train"
-                data-reward-path="{{ default_reward_kl_lrlow_csv }}"
-                data-train-path="{{ default_train_kl_lrlow_csv }}"
-              >
-                Train KL LR-Low
+                加载双实验默认
               </button>
             </div>
-            <p class="status compact-status">Reward Monitor 显示累计收益及 reward 组成，包括 process、通信、格式和验证器惩罚</p>
-          </div>
-          <div class="panel">
-            <label for="train-csv-input">Train CSV</label>
-            <input id="train-csv-input" value="{{ default_train_csv }}" />
             <div class="row">
               <button id="refresh-monitor-btn">刷新曲线</button>
               <button id="toggle-monitor-btn" class="primary">暂停自动更新</button>
             </div>
-            <p id="monitor-status" class="status">监控未启动</p>
+            <p class="status compact-status">
+              对比模式会把两组实验的 collect/train/eval 指标叠加到同一张图里，便于直接比较均值走势。
+            </p>
           </div>
         </section>
 
-        <section class="controls">
+        <section class="controls single-column">
           <div class="panel">
-            <label for="eval-dir-input">Eval Directory</label>
-            <input id="eval-dir-input" value="{{ default_eval_dir }}" />
-            <div class="preset-row">
-              <button
-                type="button"
-                class="preset-btn"
-                data-preset-kind="eval"
-                data-eval-dir="{{ default_eval_dir }}"
-              >
-                Eval
-              </button>
-              <button
-                type="button"
-                class="preset-btn"
-                data-preset-kind="eval"
-                data-eval-dir="{{ default_eval_kl_dir }}"
-              >
-                Eval KL
-              </button>
-              <button
-                type="button"
-                class="preset-btn"
-                data-preset-kind="eval"
-                data-eval-dir="{{ default_collect_kl_lrlow_dir }}"
-              >
-                Collect KL LR-Low
-              </button>
-              <button
-                type="button"
-                class="preset-btn"
-                data-preset-kind="eval"
-                data-eval-dir="{{ default_eval_kl_lrlow_dir }}"
-              >
-                Eval KL LR-Low
-              </button>
-            </div>
-            <p class="status compact-status">自动读取 performance / episode_return / reward 三类评估 CSV</p>
+            <p class="status compact-status">实验根目录：{{ default_compare_root }}</p>
+            <p id="monitor-status" class="status">监控未启动</p>
           </div>
         </section>
 

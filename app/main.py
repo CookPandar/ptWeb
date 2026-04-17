@@ -17,25 +17,60 @@ from transformers import AutoTokenizer
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DEFAULT_DATA_DIR = Path(
-    "/home/zhangshuwen/Collab-Overcooked/runs/rl/train/initial_rollout_cache"
-)
+HOME_DIR = BASE_DIR.parent
+
+
+def _resolve_collab_root() -> Path:
+    env_root = os.getenv("PTWEB_COLLAB_ROOT", "").strip()
+    candidates = []
+    if env_root:
+        candidates.append(Path(env_root).expanduser())
+    candidates.extend(
+        [
+            HOME_DIR / "Collab-Overcooked-1",
+            HOME_DIR / "Collab-Overcooked",
+        ]
+    )
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve() if candidates else (HOME_DIR / "Collab-Overcooked-1").resolve()
+
+
+COLLAB_ROOT = _resolve_collab_root()
+DEFAULT_EXPERIMENT_ROOT = Path(
+    os.getenv(
+        "PTWEB_EXPERIMENT_ROOT",
+        "/mnt/volumes/ss-sai-bd-ga/zhangshuwen/Collab-Overcooked-exp",
+    )
+).expanduser()
+DEFAULT_BASELINE_ROOT = DEFAULT_EXPERIMENT_ROOT / "no_paired_comm"
+DEFAULT_PAIRED_ROOT = DEFAULT_EXPERIMENT_ROOT / "paired_comm"
+DEFAULT_DATA_DIR = COLLAB_ROOT / "rollouts_kl"
 DEFAULT_FILE = DEFAULT_DATA_DIR / "rollout_rank0_u00001.pt"
-DEFAULT_TOKENIZER = Path("/home/zhangshuwen/Collab-Overcooked/runs/Chef")
-DEFAULT_TRAIN_DIR = Path("/home/zhangshuwen/Collab-Overcooked/runs/rl/train")
+DEFAULT_TOKENIZER = COLLAB_ROOT / "runs" / "Chef"
+DEFAULT_TRAIN_DIR = COLLAB_ROOT / "runs" / "rl" / "train"
 DEFAULT_REWARD_CSV = DEFAULT_TRAIN_DIR / "reward_curve.csv"
 DEFAULT_TRAIN_CSV = DEFAULT_TRAIN_DIR / "train_curve.csv"
-DEFAULT_TRAIN_KL_DIR = Path("/home/zhangshuwen/Collab-Overcooked/runs/rl/train_kl")
+DEFAULT_TRAIN_KL_DIR = COLLAB_ROOT / "runs" / "rl" / "train_kl"
 DEFAULT_REWARD_KL_CSV = DEFAULT_TRAIN_KL_DIR / "reward_curve.csv"
 DEFAULT_TRAIN_KL_CSV = DEFAULT_TRAIN_KL_DIR / "train_curve.csv"
-DEFAULT_TRAIN_KL_LRLOW_DIR = Path("/home/zhangshuwen/Collab-Overcooked/runs/rl/train_kl_actorlr100x")
+DEFAULT_TRAIN_KL_LRLOW_DIR = COLLAB_ROOT / "runs" / "rl" / "train_kl_actorlr100x"
 DEFAULT_REWARD_KL_LRLOW_CSV = DEFAULT_TRAIN_KL_LRLOW_DIR / "reward_curve.csv"
 DEFAULT_TRAIN_KL_LRLOW_CSV = DEFAULT_TRAIN_KL_LRLOW_DIR / "train_curve.csv"
-DEFAULT_EVAL_DIR = Path("/home/zhangshuwen/Collab-Overcooked/results/rl_eval")
-DEFAULT_EVAL_KL_DIR = Path("/home/zhangshuwen/Collab-Overcooked/results/rl_eval_kl")
-DEFAULT_COLLECT_KL_LRLOW_DIR = Path("/home/zhangshuwen/Collab-Overcooked/results/rl_collect_kl_actorlr100x")
-DEFAULT_EVAL_KL_LRLOW_DIR = Path("/home/zhangshuwen/Collab-Overcooked/results/rl_eval_kl_actorlr100x")
-DEFAULT_POLICY_RECORDS_DIR = Path("/home/zhangshuwen/Collab-Overcooked/runs/rl_policy_records")
+DEFAULT_EVAL_DIR = COLLAB_ROOT / "results" / "rl_eval"
+DEFAULT_EVAL_KL_DIR = COLLAB_ROOT / "results" / "rl_eval_kl"
+DEFAULT_COLLECT_KL_LRLOW_DIR = COLLAB_ROOT / "results" / "rl_collect_kl_actorlr100x"
+DEFAULT_EVAL_KL_LRLOW_DIR = COLLAB_ROOT / "results" / "rl_eval_kl_actorlr100x"
+DEFAULT_POLICY_RECORDS_DIR = COLLAB_ROOT / "runs" / "rl_policy_records"
+DEFAULT_COMPARE_A_LABEL = "No Paired Comm"
+DEFAULT_COMPARE_B_LABEL = "Paired Comm"
+DEFAULT_COMPARE_A_REWARD_CSV = DEFAULT_BASELINE_ROOT / "runs" / "rl" / "train_kl" / "reward_curve.csv"
+DEFAULT_COMPARE_A_TRAIN_CSV = DEFAULT_BASELINE_ROOT / "runs" / "rl" / "train_kl" / "train_curve.csv"
+DEFAULT_COMPARE_A_EVAL_DIR = DEFAULT_BASELINE_ROOT / "results" / "rl_eval_kl"
+DEFAULT_COMPARE_B_REWARD_CSV = DEFAULT_PAIRED_ROOT / "runs" / "rl" / "train_kl" / "reward_curve.csv"
+DEFAULT_COMPARE_B_TRAIN_CSV = DEFAULT_PAIRED_ROOT / "runs" / "rl" / "train_kl" / "train_curve.csv"
+DEFAULT_COMPARE_B_EVAL_DIR = DEFAULT_PAIRED_ROOT / "results" / "rl_eval_kl"
 MAX_LIST_FILES = 200
 MAX_POLICY_RECORD_FILES = 5000
 MAX_ITEMS = 5000
@@ -748,6 +783,15 @@ async def index(request: Request) -> HTMLResponse:
             "default_collect_kl_lrlow_dir": str(DEFAULT_COLLECT_KL_LRLOW_DIR),
             "default_eval_kl_lrlow_dir": str(DEFAULT_EVAL_KL_LRLOW_DIR),
             "default_policy_records_dir": str(DEFAULT_POLICY_RECORDS_DIR),
+            "default_compare_a_label": DEFAULT_COMPARE_A_LABEL,
+            "default_compare_b_label": DEFAULT_COMPARE_B_LABEL,
+            "default_compare_a_reward_csv": str(DEFAULT_COMPARE_A_REWARD_CSV),
+            "default_compare_a_train_csv": str(DEFAULT_COMPARE_A_TRAIN_CSV),
+            "default_compare_a_eval_dir": str(DEFAULT_COMPARE_A_EVAL_DIR),
+            "default_compare_b_reward_csv": str(DEFAULT_COMPARE_B_REWARD_CSV),
+            "default_compare_b_train_csv": str(DEFAULT_COMPARE_B_TRAIN_CSV),
+            "default_compare_b_eval_dir": str(DEFAULT_COMPARE_B_EVAL_DIR),
+            "default_compare_root": str(DEFAULT_EXPERIMENT_ROOT),
             "static_version": _static_version(),
         },
     )
