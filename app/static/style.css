@@ -125,6 +125,12 @@ h1 {
   margin-bottom: 16px;
 }
 
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
 .panel,
 .meta-card {
   background: var(--panel);
@@ -479,7 +485,8 @@ tbody tr.active {
 @media (max-width: 980px) {
   .hero,
   .controls,
-  .grid {
+  .grid,
+  .compare-grid {
     grid-template-columns: 1fr;
   }
 

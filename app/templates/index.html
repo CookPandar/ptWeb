@@ -86,7 +86,7 @@
               <button id="toggle-monitor-btn" class="primary">暂停自动更新</button>
             </div>
             <p class="status compact-status">
-              对比模式会把两组实验的 collect/train/eval 指标叠加到同一张图里，便于直接比较均值走势。
+              监控页会把两组实验分开展示，collect/train/eval 各自独立成图，便于直接逐组查看。
             </p>
           </div>
         </section>
@@ -106,35 +106,65 @@
             </section>
 
             <section id="reward-panel" class="view-panel active">
-              <div class="panel">
-                <div class="panel-title">
-                  <h2>Reward Monitor</h2>
-                  <span id="reward-meta" class="muted"></span>
+              <div class="compare-grid">
+                <div class="panel">
+                  <div class="panel-title">
+                    <h2>Reward Monitor A</h2>
+                    <span id="reward-meta-a" class="muted"></span>
+                  </div>
+                  <div id="reward-chart-grid-a" class="subchart-grid"></div>
+                  <pre id="reward-tail-a" class="json-block chart-tail"></pre>
                 </div>
-                <div id="reward-chart-grid" class="subchart-grid"></div>
-                <pre id="reward-tail" class="json-block chart-tail"></pre>
+                <div class="panel">
+                  <div class="panel-title">
+                    <h2>Reward Monitor B</h2>
+                    <span id="reward-meta-b" class="muted"></span>
+                  </div>
+                  <div id="reward-chart-grid-b" class="subchart-grid"></div>
+                  <pre id="reward-tail-b" class="json-block chart-tail"></pre>
+                </div>
               </div>
             </section>
 
             <section id="train-panel" class="view-panel">
-              <div class="panel">
-                <div class="panel-title">
-                  <h2>Train Monitor</h2>
-                  <span id="train-meta" class="muted"></span>
+              <div class="compare-grid">
+                <div class="panel">
+                  <div class="panel-title">
+                    <h2>Train Monitor A</h2>
+                    <span id="train-meta-a" class="muted"></span>
+                  </div>
+                  <div id="train-chart-grid-a" class="subchart-grid"></div>
+                  <pre id="train-tail-a" class="json-block chart-tail"></pre>
                 </div>
-                <div id="train-chart-grid" class="subchart-grid"></div>
-                <pre id="train-tail" class="json-block chart-tail"></pre>
+                <div class="panel">
+                  <div class="panel-title">
+                    <h2>Train Monitor B</h2>
+                    <span id="train-meta-b" class="muted"></span>
+                  </div>
+                  <div id="train-chart-grid-b" class="subchart-grid"></div>
+                  <pre id="train-tail-b" class="json-block chart-tail"></pre>
+                </div>
               </div>
             </section>
 
             <section id="eval-panel" class="view-panel">
-              <div class="panel">
-                <div class="panel-title">
-                  <h2>Eval Monitor</h2>
-                  <span id="eval-meta" class="muted"></span>
+              <div class="compare-grid">
+                <div class="panel">
+                  <div class="panel-title">
+                    <h2>Eval Monitor A</h2>
+                    <span id="eval-meta-a" class="muted"></span>
+                  </div>
+                  <div id="eval-chart-grid-a" class="subchart-grid"></div>
+                  <pre id="eval-tail-a" class="json-block chart-tail"></pre>
                 </div>
-                <div id="eval-chart-grid" class="subchart-grid"></div>
-                <pre id="eval-tail" class="json-block chart-tail"></pre>
+                <div class="panel">
+                  <div class="panel-title">
+                    <h2>Eval Monitor B</h2>
+                    <span id="eval-meta-b" class="muted"></span>
+                  </div>
+                  <div id="eval-chart-grid-b" class="subchart-grid"></div>
+                  <pre id="eval-tail-b" class="json-block chart-tail"></pre>
+                </div>
               </div>
             </section>
           </section>
