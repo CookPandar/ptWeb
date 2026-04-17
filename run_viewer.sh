@@ -4,4 +4,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
 
-exec /home/zhangshuwen/vllm/bin/python3.10 -m app.main
+PYTHON_BIN="${PT_VIEWER_PYTHON:-python3}"
+
+exec "$PYTHON_BIN" -m app.main
