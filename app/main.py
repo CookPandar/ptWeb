@@ -44,25 +44,30 @@ DEFAULT_EXPERIMENT_ROOT = Path(
         "/mnt/volumes/ss-sai-bd-ga/zhangshuwen/Collab-Overcooked-exp",
     )
 ).expanduser()
+DEFAULT_RUN_ROOT = Path(
+    os.getenv(
+        "PTWEB_RUN_ROOT",
+        "/mnt/volumes/ss-sai-bd-ga/zhangshuwen/Collab-Overcooked-exp/t13_t16_debug",
+    )
+).expanduser()
 DEFAULT_BASELINE_ROOT = DEFAULT_EXPERIMENT_ROOT / "no_paired_comm"
 DEFAULT_PAIRED_ROOT = DEFAULT_EXPERIMENT_ROOT / "paired_comm"
-DEFAULT_DATA_DIR = COLLAB_ROOT / "rollouts_kl"
-DEFAULT_FILE = DEFAULT_DATA_DIR / "rollout_rank0_u00001.pt"
+DEFAULT_DATA_DIR = DEFAULT_RUN_ROOT / "rollouts_kl"
 DEFAULT_TOKENIZER = COLLAB_ROOT / "runs" / "Chef"
-DEFAULT_TRAIN_DIR = COLLAB_ROOT / "runs" / "rl" / "train"
+DEFAULT_TRAIN_DIR = DEFAULT_RUN_ROOT / "runs" / "rl" / "train"
 DEFAULT_REWARD_CSV = DEFAULT_TRAIN_DIR / "reward_curve.csv"
 DEFAULT_TRAIN_CSV = DEFAULT_TRAIN_DIR / "train_curve.csv"
-DEFAULT_TRAIN_KL_DIR = COLLAB_ROOT / "runs" / "rl" / "train_kl"
+DEFAULT_TRAIN_KL_DIR = DEFAULT_RUN_ROOT / "runs" / "rl" / "train_kl"
 DEFAULT_REWARD_KL_CSV = DEFAULT_TRAIN_KL_DIR / "reward_curve.csv"
 DEFAULT_TRAIN_KL_CSV = DEFAULT_TRAIN_KL_DIR / "train_curve.csv"
-DEFAULT_TRAIN_KL_LRLOW_DIR = COLLAB_ROOT / "runs" / "rl" / "train_kl_actorlr100x"
+DEFAULT_TRAIN_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "runs" / "rl" / "train_kl_actorlr100x"
 DEFAULT_REWARD_KL_LRLOW_CSV = DEFAULT_TRAIN_KL_LRLOW_DIR / "reward_curve.csv"
 DEFAULT_TRAIN_KL_LRLOW_CSV = DEFAULT_TRAIN_KL_LRLOW_DIR / "train_curve.csv"
-DEFAULT_EVAL_DIR = COLLAB_ROOT / "results" / "rl_eval"
-DEFAULT_EVAL_KL_DIR = COLLAB_ROOT / "results" / "rl_eval_kl"
-DEFAULT_COLLECT_KL_LRLOW_DIR = COLLAB_ROOT / "results" / "rl_collect_kl_actorlr100x"
-DEFAULT_EVAL_KL_LRLOW_DIR = COLLAB_ROOT / "results" / "rl_eval_kl_actorlr100x"
-DEFAULT_POLICY_RECORDS_DIR = COLLAB_ROOT / "runs" / "rl_policy_records"
+DEFAULT_EVAL_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval"
+DEFAULT_EVAL_KL_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval_kl"
+DEFAULT_COLLECT_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "results" / "rl_collect_kl_actorlr100x"
+DEFAULT_EVAL_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval_kl_actorlr100x"
+DEFAULT_POLICY_RECORDS_DIR = DEFAULT_RUN_ROOT / "runs" / "rl_policy_records"
 DEFAULT_COMPARE_A_LABEL = "No Paired Comm"
 DEFAULT_COMPARE_B_LABEL = "Paired Comm"
 DEFAULT_COMPARE_A_REWARD_CSV = DEFAULT_BASELINE_ROOT / "runs" / "rl" / "train_kl" / "reward_curve.csv"
@@ -76,6 +81,17 @@ MAX_POLICY_RECORD_FILES = 5000
 MAX_ITEMS = 5000
 MAX_TENSOR_PREVIEW = 64
 TEXT_FIELD_NAMES = {"prompt_ids", "response_ids", "critic_input_ids"}
+
+
+def _resolve_default_pt_file(directory: Path) -> Path:
+    if directory.is_dir():
+        pt_files = sorted(directory.glob("*.pt"))
+        if pt_files:
+            return pt_files[0]
+    return directory / "rollout_rank0_u00001.pt"
+
+
+DEFAULT_FILE = _resolve_default_pt_file(DEFAULT_DATA_DIR)
 
 
 app = FastAPI(title="PT Rollout Viewer")
