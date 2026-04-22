@@ -68,19 +68,51 @@ DEFAULT_EVAL_KL_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval_kl"
 DEFAULT_COLLECT_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "results" / "rl_collect_kl_actorlr100x"
 DEFAULT_EVAL_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval_kl_actorlr100x"
 DEFAULT_POLICY_RECORDS_DIR = DEFAULT_RUN_ROOT / "runs" / "rl_policy_records"
-DEFAULT_COMPARE_A_LABEL = "t13_t16_debug"
-DEFAULT_COMPARE_B_LABEL = "t13_t16_debug"
-DEFAULT_COMPARE_A_REWARD_CSV = DEFAULT_REWARD_CSV
-DEFAULT_COMPARE_A_TRAIN_CSV = DEFAULT_TRAIN_CSV
-DEFAULT_COMPARE_A_EVAL_DIR = DEFAULT_EVAL_DIR
-DEFAULT_COMPARE_B_REWARD_CSV = DEFAULT_REWARD_CSV
-DEFAULT_COMPARE_B_TRAIN_CSV = DEFAULT_TRAIN_CSV
-DEFAULT_COMPARE_B_EVAL_DIR = DEFAULT_EVAL_DIR
 MAX_LIST_FILES = 200
 MAX_POLICY_RECORD_FILES = 5000
 MAX_ITEMS = 5000
 MAX_TENSOR_PREVIEW = 64
 TEXT_FIELD_NAMES = {"prompt_ids", "response_ids", "critic_input_ids"}
+
+
+def _first_existing_path(candidates: list[Path]) -> Path:
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate.resolve()
+    return candidates[0].resolve()
+
+
+def _monitor_defaults_for_root(root: Path) -> tuple[Path, Path, Path]:
+    train_dir = _first_existing_path(
+        [
+            root / "runs" / "rl" / "train_kl",
+            root / "runs" / "rl" / "train",
+            root / "runs" / "rl" / "train_kl_actorlr100x",
+        ]
+    )
+    eval_dir = _first_existing_path(
+        [
+            root / "results" / "rl_eval_kl",
+            root / "results" / "rl_eval",
+            root / "results" / "rl_eval_kl_actorlr100x",
+            root / "results" / "rl_collect_kl_actorlr100x",
+        ]
+    )
+    return train_dir / "reward_curve.csv", train_dir / "train_curve.csv", eval_dir
+
+
+DEFAULT_COMPARE_A_LABEL = DEFAULT_BASELINE_ROOT.name
+DEFAULT_COMPARE_B_LABEL = DEFAULT_PAIRED_ROOT.name
+(
+    DEFAULT_COMPARE_A_REWARD_CSV,
+    DEFAULT_COMPARE_A_TRAIN_CSV,
+    DEFAULT_COMPARE_A_EVAL_DIR,
+) = _monitor_defaults_for_root(DEFAULT_BASELINE_ROOT)
+(
+    DEFAULT_COMPARE_B_REWARD_CSV,
+    DEFAULT_COMPARE_B_TRAIN_CSV,
+    DEFAULT_COMPARE_B_EVAL_DIR,
+) = _monitor_defaults_for_root(DEFAULT_PAIRED_ROOT)
 
 
 def _resolve_default_pt_file(directory: Path) -> Path:
@@ -393,6 +425,18 @@ def _normalized_policy_call_type(row: dict[str, Any], metadata: dict[str, Any]) 
     return None
 
 
+def _paired_collab_meta(reward_breakdown: dict[str, Any]) -> dict[str, Any]:
+    raw_entry = reward_breakdown.get("raw") if isinstance(reward_breakdown.get("raw"), dict) else {}
+    return {
+        "reward": reward_breakdown.get("paired_comm_reward"),
+        "role": raw_entry.get("role"),
+        "result": raw_entry.get("result"),
+        "target_agent": raw_entry.get("target_agent"),
+        "request_helpful": raw_entry.get("request_helpful"),
+        "request_action": raw_entry.get("request_action"),
+    }
+
+
 def _policy_record_overview(path: Path, rows: list[dict[str, Any]]) -> dict[str, Any]:
     agents = sorted(
         {
@@ -483,6 +527,7 @@ def _build_policy_record_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]
             if isinstance(metadata.get("reward_breakdown"), dict)
             else {}
         )
+        paired_collab = _paired_collab_meta(reward_breakdown)
         prompt = row.get("prompt")
         response = row.get("response")
         observation = _extract_observation_text(prompt) or prompt
@@ -505,6 +550,9 @@ def _build_policy_record_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]
                 "format_reward": reward_breakdown.get("format_reward"),
                 "validator_reward": reward_breakdown.get("validator_reward"),
                 "communication_reward": reward_breakdown.get("communication_reward"),
+                "paired_comm_reward": paired_collab.get("reward"),
+                "paired_comm_role": paired_collab.get("role"),
+                "paired_comm_result": paired_collab.get("result"),
             }
         )
     return table_rows
@@ -517,6 +565,7 @@ def _policy_record_detail(row: dict[str, Any], index: int) -> dict[str, Any]:
         if isinstance(metadata.get("reward_breakdown"), dict)
         else {}
     )
+    paired_collab = _paired_collab_meta(reward_breakdown)
     prompt = row.get("prompt")
     observation = _extract_observation_text(prompt) or prompt
     observation_timestep = _extract_observation_timestep(observation) or _extract_observation_timestep(prompt)
@@ -536,6 +585,7 @@ def _policy_record_detail(row: dict[str, Any], index: int) -> dict[str, Any]:
         "messages": row.get("messages"),
         "metadata": metadata,
         "reward_breakdown": reward_breakdown,
+        "paired_collab": paired_collab,
     }
 
 
@@ -564,6 +614,8 @@ def _build_paired_policy_rows(session_dir: Path) -> dict[str, Any]:
 
     communication_by_agent: dict[int, dict[int | None, list[dict[str, Any]]]] = {0: {}, 1: {}}
     communication_indexes: dict[int, set[int]] = {0: set(), 1: set()}
+    paired_collab_totals = {0: 0.0, 1: 0.0}
+    paired_collab_nonzero_counts = {0: 0, 1: 0}
 
     for agent_idx, details in details_by_agent.items():
         for detail in details:
@@ -571,6 +623,11 @@ def _build_paired_policy_rows(session_dir: Path) -> dict[str, Any]:
             if logical_timestep is None:
                 logical_timestep = detail.get("timestep")
             detail["logical_timestep"] = logical_timestep
+            paired_collab_reward = detail.get("paired_collab", {}).get("reward")
+            if isinstance(paired_collab_reward, (int, float)) and not isinstance(paired_collab_reward, bool):
+                paired_collab_totals[agent_idx] += float(paired_collab_reward)
+                if float(paired_collab_reward) != 0.0:
+                    paired_collab_nonzero_counts[agent_idx] += 1
             if detail.get("normalized_call_type") == "communication":
                 communication_by_agent[agent_idx].setdefault(logical_timestep, []).append(detail)
                 communication_indexes[agent_idx].add(int(detail["index"]))
@@ -604,10 +661,16 @@ def _build_paired_policy_rows(session_dir: Path) -> dict[str, Any]:
                     "agent0_row_index": agent0_detail.get("index") if agent0_detail else None,
                     "agent0_call_type": agent0_detail.get("normalized_call_type") if agent0_detail else None,
                     "agent0_reward": agent0_detail.get("reward") if agent0_detail else None,
+                    "agent0_collab_reward": (
+                        agent0_detail.get("paired_collab", {}).get("reward") if agent0_detail else None
+                    ),
                     "agent0_observation_preview": _preview_text(agent0_detail.get("observation")) if agent0_detail else None,
                     "agent1_row_index": agent1_detail.get("index") if agent1_detail else None,
                     "agent1_call_type": agent1_detail.get("normalized_call_type") if agent1_detail else None,
                     "agent1_reward": agent1_detail.get("reward") if agent1_detail else None,
+                    "agent1_collab_reward": (
+                        agent1_detail.get("paired_collab", {}).get("reward") if agent1_detail else None
+                    ),
                     "agent1_observation_preview": _preview_text(agent1_detail.get("observation")) if agent1_detail else None,
                 }
             )
@@ -646,10 +709,16 @@ def _build_paired_policy_rows(session_dir: Path) -> dict[str, Any]:
                 "agent0_row_index": detail.get("index") if agent_idx == 0 else None,
                 "agent0_call_type": detail.get("normalized_call_type") if agent_idx == 0 else None,
                 "agent0_reward": detail.get("reward") if agent_idx == 0 else None,
+                "agent0_collab_reward": (
+                    detail.get("paired_collab", {}).get("reward") if agent_idx == 0 else None
+                ),
                 "agent0_observation_preview": _preview_text(detail.get("observation")) if agent_idx == 0 else None,
                 "agent1_row_index": detail.get("index") if agent_idx == 1 else None,
                 "agent1_call_type": detail.get("normalized_call_type") if agent_idx == 1 else None,
                 "agent1_reward": detail.get("reward") if agent_idx == 1 else None,
+                "agent1_collab_reward": (
+                    detail.get("paired_collab", {}).get("reward") if agent_idx == 1 else None
+                ),
                 "agent1_observation_preview": _preview_text(detail.get("observation")) if agent_idx == 1 else None,
             }
         )
@@ -695,6 +764,12 @@ def _build_paired_policy_rows(session_dir: Path) -> dict[str, Any]:
         "agent_row_counts": {
             "agent_0": len(agent0_rows),
             "agent_1": len(agent1_rows),
+        },
+        "paired_collab_reward": {
+            "agent_0_total": paired_collab_totals[0],
+            "agent_0_nonzero_count": paired_collab_nonzero_counts[0],
+            "agent_1_total": paired_collab_totals[1],
+            "agent_1_nonzero_count": paired_collab_nonzero_counts[1],
         },
         "paired_row_count": len(reordered_rows),
         "pairing_rule": (
@@ -807,7 +882,9 @@ async def index(request: Request) -> HTMLResponse:
             "default_compare_b_reward_csv": str(DEFAULT_COMPARE_B_REWARD_CSV),
             "default_compare_b_train_csv": str(DEFAULT_COMPARE_B_TRAIN_CSV),
             "default_compare_b_eval_dir": str(DEFAULT_COMPARE_B_EVAL_DIR),
-            "default_compare_root": str(DEFAULT_RUN_ROOT),
+            "default_compare_root": (
+                f"A={DEFAULT_BASELINE_ROOT} | B={DEFAULT_PAIRED_ROOT}"
+            ),
             "static_version": _static_version(),
         },
     )
@@ -945,6 +1022,13 @@ async def get_monitor_summary(
                 "subcharts": [
                     {"title": "Agent 0", "metrics": ["agent0_comm_sum"]},
                     {"title": "Agent 1", "metrics": ["agent1_comm_sum"]},
+                ],
+            },
+            {
+                "title": "Collab Action Reward",
+                "subcharts": [
+                    {"title": "Agent 0", "metrics": ["agent0_paired_comm_sum"]},
+                    {"title": "Agent 1", "metrics": ["agent1_paired_comm_sum"]},
                 ],
             },
             {
@@ -1268,6 +1352,7 @@ async def get_eval_monitor_summary(
                         "agent0_format_sum",
                         "agent0_validator_sum",
                         "agent0_comm_sum",
+                        "agent0_paired_comm_sum",
                     ],
                 },
                 {
@@ -1277,6 +1362,7 @@ async def get_eval_monitor_summary(
                         "agent1_format_sum",
                         "agent1_validator_sum",
                         "agent1_comm_sum",
+                        "agent1_paired_comm_sum",
                     ],
                 },
             ],
@@ -1324,6 +1410,13 @@ async def get_eval_monitor_summary(
                     "subcharts": [
                         {"title": "Agent 0", "metrics": ["agent0_comm_sum"]},
                         {"title": "Agent 1", "metrics": ["agent1_comm_sum"]},
+                    ],
+                },
+                {
+                    "title": "Collab Action Reward",
+                    "subcharts": [
+                        {"title": "Agent 0", "metrics": ["agent0_paired_comm_sum"]},
+                        {"title": "Agent 1", "metrics": ["agent1_paired_comm_sum"]},
                     ],
                 },
                 {

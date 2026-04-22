@@ -217,10 +217,12 @@ function renderPolicyRecordRows(rows) {
       <td>${escapeHtml(displayPairCell(row.agent0_row_index, row.agent0_row_index))}</td>
       <td>${escapeHtml(displayPairCell(row.agent0_row_index, row.agent0_call_type))}</td>
       <td>${escapeHtml(displayPairCell(row.agent0_row_index, row.agent0_reward))}</td>
+      <td>${escapeHtml(displayPairCell(row.agent0_row_index, row.agent0_collab_reward))}</td>
       <td>${escapeHtml(displayPairCell(row.agent0_row_index, row.agent0_observation_preview))}</td>
       <td>${escapeHtml(displayPairCell(row.agent1_row_index, row.agent1_row_index))}</td>
       <td>${escapeHtml(displayPairCell(row.agent1_row_index, row.agent1_call_type))}</td>
       <td>${escapeHtml(displayPairCell(row.agent1_row_index, row.agent1_reward))}</td>
+      <td>${escapeHtml(displayPairCell(row.agent1_row_index, row.agent1_collab_reward))}</td>
       <td>${escapeHtml(displayPairCell(row.agent1_row_index, row.agent1_observation_preview))}</td>
     `;
     tr.addEventListener("click", () => loadPolicyRecordItem(row.index, tr));
@@ -248,6 +250,8 @@ function renderAgentDetail(prefix, detail) {
     row_index: detail.index,
     call_type: detail.call_type,
     reward: detail.reward,
+    collab_reward: detail.paired_collab?.reward,
+    collab_trace: detail.paired_collab || {},
     done: detail.done,
     reward_breakdown: detail.reward_breakdown || {},
     metadata: detail.metadata || {},
