@@ -68,14 +68,14 @@ DEFAULT_EVAL_KL_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval_kl"
 DEFAULT_COLLECT_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "results" / "rl_collect_kl_actorlr100x"
 DEFAULT_EVAL_KL_LRLOW_DIR = DEFAULT_RUN_ROOT / "results" / "rl_eval_kl_actorlr100x"
 DEFAULT_POLICY_RECORDS_DIR = DEFAULT_RUN_ROOT / "runs" / "rl_policy_records"
-DEFAULT_COMPARE_A_LABEL = "No Paired Comm"
-DEFAULT_COMPARE_B_LABEL = "Paired Comm"
-DEFAULT_COMPARE_A_REWARD_CSV = DEFAULT_BASELINE_ROOT / "runs" / "rl" / "train_kl" / "reward_curve.csv"
-DEFAULT_COMPARE_A_TRAIN_CSV = DEFAULT_BASELINE_ROOT / "runs" / "rl" / "train_kl" / "train_curve.csv"
-DEFAULT_COMPARE_A_EVAL_DIR = DEFAULT_BASELINE_ROOT / "results" / "rl_eval_kl"
-DEFAULT_COMPARE_B_REWARD_CSV = DEFAULT_PAIRED_ROOT / "runs" / "rl" / "train_kl" / "reward_curve.csv"
-DEFAULT_COMPARE_B_TRAIN_CSV = DEFAULT_PAIRED_ROOT / "runs" / "rl" / "train_kl" / "train_curve.csv"
-DEFAULT_COMPARE_B_EVAL_DIR = DEFAULT_PAIRED_ROOT / "results" / "rl_eval_kl"
+DEFAULT_COMPARE_A_LABEL = "t13_t16_debug"
+DEFAULT_COMPARE_B_LABEL = "t13_t16_debug"
+DEFAULT_COMPARE_A_REWARD_CSV = DEFAULT_REWARD_CSV
+DEFAULT_COMPARE_A_TRAIN_CSV = DEFAULT_TRAIN_CSV
+DEFAULT_COMPARE_A_EVAL_DIR = DEFAULT_EVAL_DIR
+DEFAULT_COMPARE_B_REWARD_CSV = DEFAULT_REWARD_CSV
+DEFAULT_COMPARE_B_TRAIN_CSV = DEFAULT_TRAIN_CSV
+DEFAULT_COMPARE_B_EVAL_DIR = DEFAULT_EVAL_DIR
 MAX_LIST_FILES = 200
 MAX_POLICY_RECORD_FILES = 5000
 MAX_ITEMS = 5000
@@ -807,7 +807,7 @@ async def index(request: Request) -> HTMLResponse:
             "default_compare_b_reward_csv": str(DEFAULT_COMPARE_B_REWARD_CSV),
             "default_compare_b_train_csv": str(DEFAULT_COMPARE_B_TRAIN_CSV),
             "default_compare_b_eval_dir": str(DEFAULT_COMPARE_B_EVAL_DIR),
-            "default_compare_root": str(DEFAULT_EXPERIMENT_ROOT),
+            "default_compare_root": str(DEFAULT_RUN_ROOT),
             "static_version": _static_version(),
         },
     )
