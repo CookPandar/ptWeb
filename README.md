@@ -17,8 +17,8 @@
 - 根对象是 `list`
 - 每个元素通常是 `dict`
 - 常见字段包括 `prompt_ids`、`response_ids`、`critic_input_ids`、`reward`、`value` 等
-- 默认 tokenizer 路径是 `/home/zhangshuwen/Collab-Overcooked/runs/Chef`
-- 默认训练曲线路径是 `/home/zhangshuwen/Collab-Overcooked/runs/rl/train/`
+- 默认会优先跟随同级目录下的 `Collab-Overcooked-1`，其次回退到 `Collab-Overcooked`
+- 也可以通过环境变量 `PTWEB_COLLAB_ROOT=/path/to/Collab-Overcooked-*` 指定读取哪份输出
 
 ## 运行
 
